@@ -31,23 +31,24 @@ An advanced, enterprise-grade resume analysis tool that leverages **Google Gemin
 
 1. **Clone the Repository:**
    ```bash
-   git clone [https://github.com/Alsrory/cv-ats-analyzer.git]
+   git clone https://github.com/Alsrory/cv-ats-analyzer.git
    cd cv-ats-analyzer
-   
+   ```
 
 ### ⚙️ Configure Environment
 Copy the example environment file to create your `.env` and add your **Gemini API Key 🔑**:
 
 ```bash
 cp .env.example .env
-
-
+```
 
 ### 🚀 Run the Local Server
 Launch the application using the PHP built-in server from the project root:
 
 ```bash
 php -S localhost:8000
+```
+
 ### 🌐 Access the Tool
 Open [http://localhost:8000](http://localhost:8000) in your web browser.
 
@@ -64,4 +65,5 @@ Open [http://localhost:8000](http://localhost:8000) in your web browser.
 
 
 ### 📄 License
-This project is licensed under the **MIT License**.
+This project is licensed under the **MIT License**
+
