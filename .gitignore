@@ -1,0 +1,16 @@
+# the senstive data and keys 
+.env
+
+# files 
+.DS_Store
+Thumbs.db
+# files for the helper (if you use Composer)
+/vendor/
+
+# log files
+*.log
+error_log
+
+# files for the IDE 
+.vscode/
+.idea/

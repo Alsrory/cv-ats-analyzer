@@ -1,0 +1,18 @@
+{
+    "name": "hp/cv_analyz",
+    "autoload": {
+        "psr-4": {
+            "Hp\\CvAnalyz\\": "src/"
+        }
+    },
+    "authors": [
+        {
+            "name": "Alsrory",
+            "email": "wwwalsarory55@gmail.comm"
+        }
+    ],
+    "require": {
+        "smalot/pdfparser": "^2.12",
+        "vlucas/phpdotenv": "^5.6"
+    }
+}
