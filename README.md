@@ -31,7 +31,7 @@ An advanced, enterprise-grade resume analysis tool that leverages **Google Gemin
 
 1. **Clone the Repository:**
    ```bash
-   git clone [https://github.com/yourusername/cv-ats-analyzer.git](https://github.com/yourusername/cv-ats-analyzer.git)
+   git clone [https://github.com/Alsrory/cv-ats-analyzer.git]
    cd cv-ats-analyzer
    
 
