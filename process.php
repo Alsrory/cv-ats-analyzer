@@ -21,12 +21,14 @@ try {
     // تحميل Composer autoload
     require_once __DIR__ . '/vendor/autoload.php';
 
-    // تحميل متغيرات البيئة
+    // تحميل متغيرات البيئة (safeLoad لدعم Docker --env-file)
     $dotenv = Dotenv\Dotenv::createImmutable(__DIR__);
-    $dotenv->load();
-    $dotenv->required('GEMINI_API_KEY')->notEmpty();
+    $dotenv->safeLoad();
 
-    $apiKey = $_ENV['GEMINI_API_KEY'];
+    $apiKey = $_ENV['GEMINI_API_KEY'] ?? getenv('GEMINI_API_KEY');
+    if (empty($apiKey)) {
+        throw new \RuntimeException('مفتاح GEMINI_API_KEY غير موجود. تأكد من إعداد ملف .env أو تمرير المتغير عبر البيئة.');
+    }
 
     // ===== التحقق من المدخلات =====
 
