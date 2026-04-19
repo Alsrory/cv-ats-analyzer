@@ -42,7 +42,7 @@ Copy the example environment file to create your `.env` and add your **Gemini AP
 cp .env.example .env
 
 
----
+
 ### 🚀 Run the Local Server
 Launch the application using the PHP built-in server from the project root:
 
@@ -51,7 +51,7 @@ php -S localhost:8000
 ### 🌐 Access the Tool
 Open [http://localhost:8000](http://localhost:8000) in your web browser.
 
----
+
 
 ### 📊 Analysis Pipeline
 * **Sanitization:** The engine cleans raw text to remove hidden Unicode characters that break JSON structures.
@@ -59,7 +59,7 @@ Open [http://localhost:8000](http://localhost:8000) in your web browser.
 * **Validation:** The response is normalized against a strict JSON schema to ensure data integrity.
 * **Visualization:** Data is mapped to the Results UI for the user.
 
----
+
 
 
 
