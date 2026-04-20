@@ -25,10 +25,13 @@ try {
     $dotenv = Dotenv\Dotenv::createImmutable(__DIR__);
     $dotenv->safeLoad();
 
-    $apiKey = $_ENV['GEMINI_API_KEY'] ?? getenv('GEMINI_API_KEY');
-    if (empty($apiKey)) {
-        throw new \RuntimeException('مفتاح GEMINI_API_KEY غير موجود. تأكد من إعداد ملف .env أو تمرير المتغير عبر البيئة.');
+    $apiKeysEnv = $_ENV['GEMINI_API_KEYS'] ?? $_ENV['GEMINI_API_KEY'] ?? getenv('GEMINI_API_KEYS') ?? getenv('GEMINI_API_KEY');
+    if (empty($apiKeysEnv)) {
+        throw new \RuntimeException('مفاتيح GEMINI_API_KEYS غير موجودة. تأكد من إعداد ملف .env أو تمرير المتغير عبر البيئة.');
     }
+
+    // فصل المفاتيح إذا كانت مفصولة بفاصلة
+    $apiKeys = array_filter(array_map('trim', explode(',', $apiKeysEnv)));
 
     // ===== التحقق من المدخلات =====
 
@@ -90,7 +93,7 @@ try {
     }
 
     // ===== تحليل السيرة الذاتية =====
-    $analyzer = new \Hp\CvAnalyz\GeminiAnalyzer($apiKey);
+    $analyzer = new \Hp\CvAnalyz\GeminiAnalyzer($apiKeys);
     $result = $analyzer->analyze($resumeText, $jobDescription);
 
     // إرسال النتيجة

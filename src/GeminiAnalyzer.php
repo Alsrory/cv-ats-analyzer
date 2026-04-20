@@ -10,8 +10,11 @@ namespace Hp\CvAnalyz;
  */
 class GeminiAnalyzer
 {
-    /** @var string مفتاح API */
-    private string $apiKey;
+    /** @var array مصفوفة مفاتيح API */
+    private array $apiKeys;
+
+    /** @var int الفهرس الحالي للمفتاح المستخدم */
+    private int $currentKeyIndex = 0;
 
     /** @var array قائمة النماذج بترتيب الأولوية */
     private array $models = [
@@ -35,14 +38,28 @@ class GeminiAnalyzer
     private array $errorLog = [];
 
     /**
-     * @param string $apiKey مفتاح Google Gemini API
+     * @param string|array $apiKeys مفتاح أو مصفوفة مفاتيح Google Gemini API
      */
-    public function __construct(string $apiKey)
+    public function __construct(string|array $apiKeys)
     {
-        if (empty(trim($apiKey))) {
+        $keys = is_array($apiKeys) ? $apiKeys : [$apiKeys];
+        $this->apiKeys = array_filter(array_map('trim', $keys));
+
+        if (empty($this->apiKeys)) {
             throw new \InvalidArgumentException('مفتاح API مطلوب ولا يمكن أن يكون فارغاً.');
         }
-        $this->apiKey = trim($apiKey);
+
+        // اختيار مفتاح عشوائي للبدء
+        $this->currentKeyIndex = array_rand($this->apiKeys);
+    }
+
+    /**
+     * تدوير مفتاح API عند استنفاد الحصة أو الوصول للحد الأقصى
+     */
+    private function rotateApiKey(): void
+    {
+        $this->currentKeyIndex = ($this->currentKeyIndex + 1) % count($this->apiKeys);
+        $this->logInfo("تم التبديل إلى مفتاح API جديد.");
     }
 
     /**
@@ -94,10 +111,15 @@ class GeminiAnalyzer
                 } catch (ApiException $e) {
                     $this->logError("خطأ API من النموذج {$model}: {$e->getMessage()}");
                     if ($e->getCode() === 429) {
-                        // Rate limit - ننتظر مدة أطول ونعيد المحاولة
+                        // Rate limit / Quota exceeded
+                        // تبديل المفتاح إذا كان لدينا أكثر من مفتاح
+                        if (count($this->apiKeys) > 1) {
+                            $this->rotateApiKey();
+                        }
+
                         if ($attempt < $this->maxRetries) {
-                            $this->logInfo("تجاوز حد الطلبات. الانتظار 5 ثوانٍ...");
-                            sleep(5);
+                            $this->logInfo("تجاوز حد الطلبات. تم تبديل المفتاح. الانتظار 2 ثانية ثم إعادة المحاولة...");
+                            sleep(2);
                             continue;
                         }
                         // إذا استنفدت المحاولات، ننتقل للنموذج التالي
@@ -183,7 +205,8 @@ PROMPT;
      */
     private function callGeminiAPI(string $model, string $prompt): string
     {
-        $url = "{$this->baseUrl}/{$model}:generateContent?key={$this->apiKey}";
+        $currentApiKey = $this->apiKeys[$this->currentKeyIndex];
+        $url = "{$this->baseUrl}/{$model}:generateContent?key={$currentApiKey}";
 
         $payloadArray = [
             'contents' => [

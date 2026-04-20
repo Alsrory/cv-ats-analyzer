@@ -10,6 +10,7 @@ An advanced, enterprise-grade resume analysis tool that leverages **Google Gemin
 * **ATS "Killer" Detection:** Identifies elements that break automated parsers, such as complex tables, non-standard fonts, and embedded images.
 
 ### 🛡️ Robust Backend Architecture
+* **API Key Rotation:** Supports multiple API keys and automatically rotates them upon encountering Rate Limit or Quota Exceeded (429) errors.
 * **Model Failover System:** Automatically switches between `gemini-2.5-flash` and `gemini-2.0-flash` to ensure high availability.
 * **Self-Healing JSON Parsing:** Features advanced regex fallback and control-character sanitization to handle inconsistent LLM responses.
 * **Smart Retry Logic:** Built-in handling for Rate Limits (429) and Service Unavailable (503) errors.
@@ -22,7 +23,8 @@ An advanced, enterprise-grade resume analysis tool that leverages **Google Gemin
 ## 🛠️ Tech Stack
 * **Language:** PHP 8.1+
 * **AI Engine:** Google Gemini API (Flash Models)
-* **Server:** PHP Built-in Web Server
+* **Server:** PHP Built-in Web Server (Dev) / Apache (Production)
+* **Containerization:** Docker
 * **Architecture:** Object-Oriented (OOP) logic
 
 ---
@@ -36,21 +38,55 @@ An advanced, enterprise-grade resume analysis tool that leverages **Google Gemin
    ```
 
 ### ⚙️ Configure Environment
-Copy the example environment file to create your `.env` and add your **Gemini API Key 🔑**:
+Copy the example environment file to create your `.env` and add your **Gemini API Key(s) 🔑**:
 
 ```bash
 cp .env.example .env
 ```
 
-### 🚀 Run the Local Server
+Open `.env` and add your key. To use multiple keys for automatic rotation, separate them with commas:
+```env
+# Single Key
+GEMINI_API_KEY="YOUR_KEY"
+
+# Multiple Keys (for automatic rotation on rate limit)
+GEMINI_API_KEYS="KEY1,KEY2,KEY3"
+```
+
+### 🚀 Run the Local Server (Development)
 Launch the application using the PHP built-in server from the project root:
 
 ```bash
 php -S localhost:8000
 ```
-
-### 🌐 Access the Tool
 Open [http://localhost:8000](http://localhost:8000) in your web browser.
+
+### 🐳 Run with Docker (Recommended)
+This project includes a production-ready `Dockerfile` based on Apache and PHP 8.1.
+
+1. **Build the Docker Image:**
+   ```bash
+   docker build -t cv-ats-analyzer .
+   ```
+
+2. **Run the Container:**
+   You can pass your API keys directly via environment variables:
+   ```bash
+   docker run -d -p 8080:80 \
+     -e GEMINI_API_KEYS="YOUR_KEY_1,YOUR_KEY_2" \
+     --name cv-analyzer \
+     cv-ats-analyzer
+   ```
+   *Or use your existing `.env` file:*
+   ```bash
+   docker run -d -p 8080:80 \
+     --env-file .env \
+     --name cv-analyzer \
+     cv-ats-analyzer
+   ```
+
+3. **Access the Application:**
+   Open [http://localhost:8080](http://localhost:8080) in your web browser.
 
 
 
