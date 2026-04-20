@@ -3,42 +3,42 @@
 namespace Hp\CvAnalyz;
 
 /**
- * GeminiAnalyzer - محرك تحليل السيرة الذاتية بالذكاء الاصطناعي
+ * GeminiAnalyzer -  tool to analysis CV by artificial intelligence
  * 
- * يستخدم Google Gemini API عبر cURL مع نظام تبديل النماذج
- * والمحاولة المتكررة لضمان استقرار الاتصال.
+ *  Google Gemini API using cURL with model switching system
+ * and retry to ensure connection stability.
  */
 class GeminiAnalyzer
 {
-    /** @var array مصفوفة مفاتيح API */
+    /** @var array Google Gemini API keys */
     private array $apiKeys;
 
-    /** @var int الفهرس الحالي للمفتاح المستخدم */
+    /** @var int The current index of the key used */
     private int $currentKeyIndex = 0;
 
-    /** @var array قائمة النماذج بترتيب الأولوية */
+    /** @var array list of models in order of priority */
     private array $models = [
         'gemini-2.5-flash',
         'gemini-2.0-flash',
     ];
 
-    /** @var string عنوان API الأساسي */
+    /** @var string The base API URL */
     private string $baseUrl = 'https://generativelanguage.googleapis.com/v1/models';
 
-    /** @var int الحد الأقصى لعدد المحاولات لكل نموذج */
+    /** @var int The maximum number of attempts per model */
     private int $maxRetries = 3;
 
-    /** @var int مدة الانتظار بين المحاولات (بالثواني) */
+    /** @var int The waiting time between attempts (in seconds) */
     private int $retryDelay = 1;
 
-    /** @var int مهلة الاتصال (بالثواني) */
+    /** @var int The connection timeout (in seconds) */
     private int $timeout = 120;
 
-    /** @var array سجل الأخطاء */
+    /** @var array The error log */
     private array $errorLog = [];
 
     /**
-     * @param string|array $apiKeys مفتاح أو مصفوفة مفاتيح Google Gemini API
+     * @param string|array $apiKeys Google Gemini API key or array of keys
      */
     public function __construct(string|array $apiKeys)
     {
@@ -46,29 +46,29 @@ class GeminiAnalyzer
         $this->apiKeys = array_filter(array_map('trim', $keys));
 
         if (empty($this->apiKeys)) {
-            throw new \InvalidArgumentException('مفتاح API مطلوب ولا يمكن أن يكون فارغاً.');
+            throw new \InvalidArgumentException('API key is required.');
         }
 
-        // اختيار مفتاح عشوائي للبدء
+        // select random key
         $this->currentKeyIndex = array_rand($this->apiKeys);
     }
 
     /**
-     * تدوير مفتاح API عند استنفاد الحصة أو الوصول للحد الأقصى
+     * rotate API key when quota is exceeded or max attempts reached
      */
     private function rotateApiKey(): void
     {
         $this->currentKeyIndex = ($this->currentKeyIndex + 1) % count($this->apiKeys);
-        $this->logInfo("تم التبديل إلى مفتاح API جديد.");
+        $this->logInfo("Switching to a new API key.");
     }
 
     /**
-     * تحليل السيرة الذاتية مقابل الوصف الوظيفي
+     * analyze CV against job description
      *
-     * @param string $resumeText نص السيرة الذاتية المستخرج
-     * @param string $jobDescription الوصف الوظيفي
-     * @return array نتائج التحليل بتنسيق JSON
-     * @throws \RuntimeException في حال فشل جميع المحاولات
+     * @param string $resumeText extracted CV text
+     * @param string $jobDescription job description
+     * @return array analysis results in JSON format
+     * @throws \RuntimeException in case of failure of all attempts
      */
     public function analyze(string $resumeText, string $jobDescription): array
     {
@@ -80,62 +80,62 @@ class GeminiAnalyzer
         }
 
         if (empty($jobDescription)) {
-            throw new \InvalidArgumentException('الوصف الوظيفي مطلوب.');
+            throw new \InvalidArgumentException(' الوصف الوظيفي مطلوب.');
         }
 
         $prompt = $this->buildPrompt($resumeText, $jobDescription);
 
-        // محاولة الاتصال بكل نموذج متاح
+        // attempt to connect to each model available
         foreach ($this->models as $modelIndex => $model) {
-            $this->logInfo("محاولة الاتصال بالنموذج: {$model}");
+            $this->logInfo("Attempting to connect to model: {$model}");
 
             for ($attempt = 1; $attempt <= $this->maxRetries; $attempt++) {
                 try {
                     $response = $this->callGeminiAPI($model, $prompt);
                     $parsed = $this->parseResponse($response);
 
-                    $this->logInfo("نجح التحليل باستخدام النموذج: {$model} (المحاولة {$attempt})");
+                    $this->logInfo("Successfully analyzed using model: {$model} (Attempt {$attempt})");
                     return $parsed;
 
                 } catch (ServiceUnavailableException $e) {
-                    $this->logError("خطأ 503 من النموذج {$model} (المحاولة {$attempt}): {$e->getMessage()}");
+                    $this->logError("503 error from model {$model} (Attempt {$attempt}): {$e->getMessage()}");
 
                     if ($attempt < $this->maxRetries) {
-                        $this->logInfo("الانتظار {$this->retryDelay} ثانية قبل إعادة المحاولة...");
+                        $this->logInfo("Waiting for {$this->retryDelay} seconds before retry...");
                         sleep($this->retryDelay);
                     } elseif ($modelIndex < count($this->models) - 1) {
-                        $this->logInfo("التبديل إلى النموذج التالي...");
-                        break; // الانتقال للنموذج التالي
+                        $this->logInfo("Switching to the next model...");
+                        break; // next model
                     }
 
                 } catch (ApiException $e) {
-                    $this->logError("خطأ API من النموذج {$model}: {$e->getMessage()}");
+                    $this->logError("API error from model {$model}: {$e->getMessage()}");
                     if ($e->getCode() === 429) {
                         // Rate limit / Quota exceeded
-                        // تبديل المفتاح إذا كان لدينا أكثر من مفتاح
+                        // switching to the next key if we have more than one
                         if (count($this->apiKeys) > 1) {
                             $this->rotateApiKey();
                         }
 
                         if ($attempt < $this->maxRetries) {
-                            $this->logInfo("تجاوز حد الطلبات. تم تبديل المفتاح. الانتظار 2 ثانية ثم إعادة المحاولة...");
+                            $this->logInfo("Rate limit exceeded. Switching key. Waiting 2 seconds then retry...");
                             sleep(2);
                             continue;
                         }
-                        // إذا استنفدت المحاولات، ننتقل للنموذج التالي
+                        // if attempts are exhausted, move to the next model
                         break;
                     }
-                    break; // أخطاء أخرى - الانتقال للنموذج التالي
+                    break; // other errors - move to the next model
                 }
             }
         }
 
-        // رسالة خطأ واضحة للمستخدم
+        // clear error log
         throw new \RuntimeException('تعذر التحليل حالياً. يرجى الانتظار دقيقة ثم إعادة المحاولة.');
     }
 
     /**
-     * بناء الأمر (Prompt) للنموذج
+     * build prompt for the model
      */
     private function buildPrompt(string $resumeText, string $jobDescription): string
     {
@@ -201,7 +201,7 @@ PROMPT;
     }
 
     /**
-     * استدعاء Gemini API عبر cURL
+     * call Gemini API via cURL
      */
     private function callGeminiAPI(string $model, string $prompt): string
     {
@@ -242,7 +242,7 @@ PROMPT;
             ],
             CURLOPT_TIMEOUT => $this->timeout,
             CURLOPT_CONNECTTIMEOUT => 30,
-            CURLOPT_SSL_VERIFYPEER => false, // بيئة التطوير المحلية
+            CURLOPT_SSL_VERIFYPEER => false, // local development environment
             CURLOPT_SSL_VERIFYHOST => 0,
         ]);
 
@@ -253,12 +253,12 @@ PROMPT;
 
         curl_close($ch);
 
-        // التحقق من أخطاء cURL
+        // check cURL errors
         if ($curlErrno !== 0) {
-            throw new ApiException("خطأ في الاتصال (cURL #{$curlErrno}): {$curlError}", $curlErrno);
+            throw new ApiException("Connection error (cURL #{$curlErrno}): {$curlError}", $curlErrno);
         }
 
-        // التحقق من كود HTTP
+        // check HTTP code
         if ($httpCode === 503) {
             throw new ServiceUnavailableException("الخادم غير متاح (503). النموذج: {$model}");
         }
@@ -277,46 +277,46 @@ PROMPT;
     }
 
     /**
-     * تحليل استجابة API واستخراج JSON
+     * parse API response and extract JSON
      */
     private function parseResponse(string $rawResponse): array
     {
         $responseData = json_decode($rawResponse, true);
 
         if (json_last_error() !== JSON_ERROR_NONE) {
-            throw new ApiException('فشل تحليل استجابة API: ' . json_last_error_msg());
+            throw new ApiException('Failed to parse API response: ' . json_last_error_msg());
         }
 
-        // استخراج النص من استجابة Gemini
+        // extract text from Gemini response
         $text = $responseData['candidates'][0]['content']['parts'][0]['text'] ?? null;
 
         if (empty($text)) {
-            // التحقق من وجود حظر أمني
+            // check for security block
             $blockReason = $responseData['candidates'][0]['finishReason'] ?? 'UNKNOWN';
             if ($blockReason === 'SAFETY') {
-                throw new ApiException('تم حظر المحتوى بسبب سياسات الأمان.');
+                throw new ApiException('Content blocked due to security policies.');
             }
-            throw new ApiException('لم يتم الحصول على رد من النموذج.');
+            throw new ApiException('No response received from the model.');
         }
 
-        // تنظيف النص من أي علامات كود محتملة
+        // clean the text from any potential code markers
         $text = trim($text);
         $text = preg_replace('/^```json\s*/i', '', $text);
         $text = preg_replace('/\s*```$/i', '', $text);
         $text = trim($text);
 
-        // إزالة أحرف التحكم التي تكسر JSON (ما عدا \n و \t)
+        // remove control characters that break JSON (except \n and \t)
         $text = preg_replace('/[\x00-\x08\x0B\x0C\x0E-\x1F\x7F]/u', '', $text);
 
         $result = json_decode($text, true);
 
         if (json_last_error() !== JSON_ERROR_NONE) {
-            // محاولة ثانية: استخراج JSON من النص
+            // second attempt: extract JSON from text
             if (preg_match('/\{[^{}]*(?:\{[^{}]*\}[^{}]*)*\}/s', $text, $matches)) {
                 $result = json_decode($matches[0], true);
             }
             if (json_last_error() !== JSON_ERROR_NONE) {
-                throw new ApiException('فشل تحليل رد النموذج. يرجى المحاولة مرة أخرى.');
+                throw new ApiException('Failed to parse model response. Please try again.');
             }
         }
 
@@ -324,7 +324,7 @@ PROMPT;
     }
 
     /**
-     * التحقق من صحة البيانات وتطبيعها
+     * validate and normalize data
      */
     private function validateAndNormalize(array $data): array
     {
@@ -349,19 +349,19 @@ PROMPT;
 
         $result = array_merge($defaults, $data);
 
-        // ضمان أن الدرجات أرقام صحيحة بين 0 و 100
+        // ensure scores are integers between 0 and 100
         foreach (['overall_ats_score', 'match_score', 'structural_score', 'readability_score', 'format_score'] as $scoreKey) {
             $result[$scoreKey] = max(0, min(100, intval($result[$scoreKey])));
         }
 
-        // ضمان أن المصفوفات فعلاً مصفوفات
+        // ensure arrays are arrays
         foreach (['parsing_issues', 'matched_keywords', 'missing_keywords', 'optimization_tips'] as $arrayKey) {
             if (!is_array($result[$arrayKey])) {
                 $result[$arrayKey] = [];
             }
         }
 
-        // ضمان هيكل section_analysis
+        // ensure section_analysis structure
         if (!is_array($result['section_analysis'])) {
             $result['section_analysis'] = $defaults['section_analysis'];
         }
@@ -372,39 +372,39 @@ PROMPT;
             $result['section_analysis']['missing_sections'] = [];
         }
 
-        // ضمان أن is_ats_friendly قيمة منطقية
+        // ensure is_ats_friendly is boolean
         $result['is_ats_friendly'] = (bool) $result['is_ats_friendly'];
 
         return $result;
     }
 
     /**
-     * تنظيف النص قبل إرساله للـ API
-     * يمنع كسر هيكل JSON ويزيل الأحرف الخطرة
+     * clean text before sending to API
+     * prevents breaking JSON structure and removes dangerous characters
      */
     private function sanitizeText(string $text): string
     {
-        // تحويل النص إلى UTF-8 إذا لم يكن كذلك
+        // convert text to UTF-8 if not already
         if (!mb_check_encoding($text, 'UTF-8')) {
             $text = mb_convert_encoding($text, 'UTF-8', 'auto');
         }
 
-        // إزالة أي بايتات غير صالحة في UTF-8
+        // remove any invalid bytes in UTF-8
         $text = mb_convert_encoding($text, 'UTF-8', 'UTF-8');
 
-        // إزالة BOM إن وُجد
+        // remove BOM if exists
         $text = preg_replace('/^\xEF\xBB\xBF/', '', $text);
 
-        // إزالة أحرف التحكم (ما عدا السطر الجديد والتبويب)
+        // remove control characters (except newline and tab)
         $text = preg_replace('/[\x00-\x08\x0B\x0C\x0E-\x1F\x7F]/', '', $text);
 
-        // إزالة أحرف Unicode غير المرئية والخاصة
+        // remove invisible and special Unicode characters
         $text = preg_replace('/[\x{FEFF}\x{200B}-\x{200D}\x{2060}\x{FFFE}\x{FFFF}]/u', '', $text);
 
-        // تطبيع الأسطر الجديدة
+        // normalize newlines
         $text = str_replace(["\r\n", "\r"], "\n", $text);
 
-        // إزالة المسافات الزائدة
+        // remove extra spaces
         $text = preg_replace('/[ \t]+/', ' ', $text);
         $text = preg_replace('/\n{3,}/', "\n\n", $text);
 
@@ -412,7 +412,7 @@ PROMPT;
     }
 
     /**
-     * تسجيل رسالة معلوماتية
+     * log information message
      */
     private function logInfo(string $message): void
     {
@@ -420,7 +420,7 @@ PROMPT;
     }
 
     /**
-     * تسجيل رسالة خطأ
+     * log error message
      */
     private function logError(string $message): void
     {
@@ -428,7 +428,7 @@ PROMPT;
     }
 
     /**
-     * الحصول على سجل الأخطاء
+     * Get error log
      */
     public function getErrorLog(): array
     {
