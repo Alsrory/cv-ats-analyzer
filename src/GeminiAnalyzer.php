@@ -20,6 +20,7 @@ class GeminiAnalyzer
     private array $models = [
         // 'gemini-2.5-flash',
         // 'gemini-2.0-flash',
+       
         'gemini-3.1-flash-lite-preview',
         'gemini-3-flash-preview',
        
@@ -28,7 +29,7 @@ class GeminiAnalyzer
     ];
 
     /** @var string The base API URL */
-    private string $baseUrl = 'https://generativelanguage.googleapis.com/v1/models';
+    private string $baseUrl = 'https://generativelanguage.googleapis.com/v1beta/models/';
 
     /** @var int The maximum number of attempts per model */
     private int $maxRetries = 2;

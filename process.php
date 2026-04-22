@@ -112,6 +112,10 @@ try {
 
 } catch (\RuntimeException $e) {
     error_log("Validation Error: " . $e->getMessage()); // سيظهر هذا في سجلات Render
+     if (isset($analyzer)) {
+        error_log("Gemini API Error Details: " . json_encode($analyzer->getErrorLog(), JSON_UNESCAPED_UNICODE));
+    }
+
     http_response_code(422);
     echo json_encode([
         'success' => false,
