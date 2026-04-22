@@ -111,6 +111,7 @@ try {
     ], JSON_UNESCAPED_UNICODE);
 
 } catch (\RuntimeException $e) {
+    error_log("Validation Error: " . $e->getMessage()); // سيظهر هذا في سجلات Render
     http_response_code(422);
     echo json_encode([
         'success' => false,
