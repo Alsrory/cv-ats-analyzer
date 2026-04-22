@@ -18,21 +18,26 @@ class GeminiAnalyzer
 
     /** @var array list of models in order of priority */
     private array $models = [
-        'gemini-2.5-flash',
-        'gemini-2.0-flash',
+        // 'gemini-2.5-flash',
+        // 'gemini-2.0-flash',
+        'gemini-3.1-flash-lite-preview',
+        'gemini-3-flash-preview',
+       
+       
+
     ];
 
     /** @var string The base API URL */
     private string $baseUrl = 'https://generativelanguage.googleapis.com/v1/models';
 
     /** @var int The maximum number of attempts per model */
-    private int $maxRetries = 3;
+    private int $maxRetries = 2;
 
     /** @var int The waiting time between attempts (in seconds) */
     private int $retryDelay = 1;
 
     /** @var int The connection timeout (in seconds) */
-    private int $timeout = 120;
+    private int $timeout = 30;
 
     /** @var array The error log */
     private array $errorLog = [];
@@ -110,6 +115,12 @@ class GeminiAnalyzer
 
                 } catch (ApiException $e) {
                     $this->logError("API error from model {$model}: {$e->getMessage()}");
+
+                    if ($e->getCode() === 404 || $e->getCode() === 400) {
+                        $this->logInfo("Critical error. Stopping retries for this model.");
+                        break; // break from the for loop of retries and go to the next model
+                    }
+
                     if ($e->getCode() === 429) {
                         // Rate limit / Quota exceeded
                         // switching to the next key if we have more than one
